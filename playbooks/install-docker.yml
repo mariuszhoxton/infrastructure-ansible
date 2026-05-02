@@ -15,7 +15,7 @@
         state: present
         update_cache: yes
 
-        - name: "3. Pobierz oficjalny klucz GPG Dockera"
+    - name: "3. Pobierz oficjalny klucz GPG Dockera"
       shell: |
         curl -fsSL https://docker.com -o /etc/apt/keyrings/docker.asc
         chmod 644 /etc/apt/keyrings/docker.asc
