@@ -1,0 +1,39 @@
+---
+- name: Deploy aplikacji z GitHub bezpośrednio na Ubuntu
+  hosts: ubuntu_server
+  become: yes
+  vars:
+    # Te zmienne możesz nadpisywać przy uruchamianiu
+    project_name: "mój-sklep"
+    project_repo: "git@github.com:mariuszhoxton/shop-project.git"
+    project_path: "/home/{{ ansible_user }}/projects/{{ project_name }}"
+
+  tasks:
+    - name: "Upewnij się, że katalog projektów istnieje"
+      file:
+        path: "/home/{{ ansible_user }}/projects"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755' 
+
+    - name: "Pobierz/Aktualizuj kod projektu z GitHub"
+      git:
+        repo: "{{ project_repo }}"
+        dest: "{{ project_path }}"
+        version: main
+        accept_hostkey: yes  # Ważne dla SSH
+      become: no # Robimy to jako  zwykły user, bo on ma klucze SSH do GitHuba
+
+    - name: "Stworz plik .env z haslami z Vault"
+      template:
+        src: "../templates/.env.j2"  # Ścieżka na Almie względem folderu playbooks/
+        dest: "{{ project_path }}/.env"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'  # Tylko Mariusz może czytać hasła
+
+    - name: "Uruchom projekt przez Docker Compose"
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_path }}"
+        state: present

@@ -1,6 +1,5 @@
 infrastructure-ansible/
-├── inventory/
-│   └── hosts.ini
+├── hosts.ini
 ├── playbooks/
 │   ├── install_docker.yml
 │   └── deploy_project.yml (ten uniwersalny, który napisałem wcześniej)
