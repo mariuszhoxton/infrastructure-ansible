@@ -9,40 +9,47 @@
         name: [docker, docker-engine, docker.io, containerd, runc]
         state: absent
 
-    - name: "2. Instalacja pakietów wymaganych do dodania repozytorium"
+    - name: "2. Instalacja pakietów wymaganych"
       apt:
         name: [ca-certificates, curl, gnupg, lsb-release, python3-pip]
         state: present
         update_cache: yes
 
-    - name: "3. Pobierz oficjalny klucz GPG Dockera"
-      get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /etc/apt/keyrings/docker.asc
-        mode: '0644'
+    - name: "3. Utwórz katalog na klucze GPG"
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
 
-    - name: "4. Dodanie oficjalnego repozytorium Docker do źródeł APT"
+    - name: "4. Pobierz oficjalny klucz GPG Dockera (używając curl)"
+      shell: |
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        chmod 644 /etc/apt/keyrings/docker.asc
+      args:
+        creates: /etc/apt/keyrings/docker.asc
+
+    - name: "5. Dodanie oficjalnego repozytorium Docker"
       apt_repository:
         repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
+        update_cache: yes
 
-    - name: "5. Instalacja silnika Docker i wtyczki Compose"
+    - name: "6. Instalacja silnika Docker i wtyczki Compose"
       apt:
         name: [docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin]
         state: present
-        update_cache: yes
 
-    - name: "6. Upewnienie się, że usługa Docker działa i startuje z systemem"
+    - name: "7. Upewnienie się, że usługa Docker działa"
       service:
         name: docker
         state: started
         enabled: yes
 
-    - name: "7. Dodanie użytkownika {{ ansible_user }} do grupy docker"
+    - name: "8. Dodanie użytkownika {{ ansible_user }} do grupy docker"
       user:
         name: "{{ ansible_user }}"
         groups: docker
         append: yes
 
-    - name: "8. Resetowanie połączenia SSH, aby uprawnienia grupy zadziałały"
+    - name: "9. Resetowanie połączenia SSH"
       meta: reset_connection
