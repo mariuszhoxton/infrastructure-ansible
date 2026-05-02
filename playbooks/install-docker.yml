@@ -15,11 +15,12 @@
         state: present
         update_cache: yes
 
-    - name: "3. Pobierz oficjalny klucz GPG Dockera"
-      get_url:
-        url: https://docker.com
-        dest: /etc/apt/keyrings/docker.asc
-        mode: '0644'
+    - name: "3. Pobierz oficjalny klucz GPG Dockera (używając curl)"
+      shell: 
+        curl -fsSL https://docker.com -o /etc/apt/keyrings/docker.asc
+        chmod 644 /etc/apt/keyrings/docker.asc
+      args:
+        creates: /etc/apt/keyrings/docker.asc
 
     - name: "4. Dodanie oficjalnego repozytorium Docker do źródeł APT"
       apt_repository:
