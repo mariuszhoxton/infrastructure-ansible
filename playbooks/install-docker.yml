@@ -15,14 +15,15 @@
         state: present
         update_cache: yes
 
-    - name: "3. Dodanie oficjalnego klucza GPG Dockera"
-      apt_key:
+    - name: "3. Pobierz oficjalny klucz GPG Dockera"
+      get_url:
         url: https://docker.com
-        state: present
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
 
     - name: "4. Dodanie oficjalnego repozytorium Docker do źródeł APT"
       apt_repository:
-        repo: "deb [arch=amd64] https://docker.com {{ ansible_distribution_release }} stable"
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://docker.com {{ ansible_distribution_release }} stable"
         state: present
 
     - name: "5. Instalacja silnika Docker i wtyczki Compose"
