@@ -1,6 +1,10 @@
 infrastructure-ansible/
-├── hosts.ini
+├── inventory
+|   ├── hosts.ini
 ├── playbooks/
 │   ├── install_docker.yml
 │   └── deploy_project.yml (ten uniwersalny, który napisałem wcześniej)
-└── setup_alma.sh          # Opcjonalny skrypt do konfiguracji Almy
+├── templates/
+│    ├── .env.j2
+├── vars
+│    ├── secrets.yml
