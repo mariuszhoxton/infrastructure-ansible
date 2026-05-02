@@ -16,16 +16,14 @@
         update_cache: yes
 
     - name: "3. Pobierz oficjalny klucz GPG Dockera"
-      shell: |
-        curl -fsSL https://docker.com -o /etc/apt/keyrings/docker.asc
-        chmod 644 /etc/apt/keyrings/docker.asc
-      args:
-        creates: /etc/apt/keyrings/docker.asc
-
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
 
     - name: "4. Dodanie oficjalnego repozytorium Docker do źródeł APT"
       apt_repository:
-        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://docker.com {{ ansible_distribution_release }} stable"
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
 
     - name: "5. Instalacja silnika Docker i wtyczki Compose"
