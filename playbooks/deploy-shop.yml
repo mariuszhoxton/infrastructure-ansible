@@ -1,11 +1,10 @@
 ---
-- name: Deploy aplikacji z GitHub bezpośrednio na Ubuntu
+- name: Deploy aplikacji z GitHub bezpośrednio na Ubuntu (z Nginx)
   hosts: ubuntu_server
   become: yes
   vars_files:
     - ../vars/secrets.yml
   vars:
-    # Te zmienne możesz nadpisywać przy uruchamianiu
     project_name: "mój-sklep"
     project_repo: "git@github.com:mariuszhoxton/shop-project.git"
     project_path: "/home/{{ ansible_user }}/projects/{{ project_name }}"
@@ -24,18 +23,29 @@
         repo: "{{ project_repo }}"
         dest: "{{ project_path }}"
         version: main
-        accept_hostkey: yes  # Ważne dla SSH
-      become: no # Robimy to jako  zwykły user, bo on ma klucze SSH do GitHuba
+        accept_hostkey: yes
+      become: no
+
+    # To zadanie jest ważne, bo Nginx potrzebuje folderu conf.d przed startem
+    - name: "Upewnij się, że struktura katalogów Nginx istnieje"
+      file:
+        path: "{{ project_path }}/nginx/conf.d"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
 
     - name: "Stworz plik .env z haslami z Vault"
       template:
-        src: "../templates/.env.j2"  # Ścieżka na Almie względem folderu playbooks/
+        src: "../templates/.env.j2"
         dest: "{{ project_path }}/.env"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
-        mode: '0600'  # Tylko Mariusz może czytać hasła
+        mode: '0600'
 
-    - name: "Uruchom projekt przez Docker Compose"
+    - name: "Uruchom projekt przez Docker Compose (NGINX + WP + DB)"
       community.docker.docker_compose_v2:
         project_src: "{{ project_path }}"
         state: present
+        # Dodajemy pull, aby Docker zawsze sprawdził czy nie ma nowszych obrazów
+        pull: always 
