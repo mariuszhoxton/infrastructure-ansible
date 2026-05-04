@@ -1,0 +1,109 @@
+---
+# --- SEKCJA 1: AUTOAKTUALIZACJA DEPLOY NA ALMIE ---
+- name: Autoupdate Playbook z GitHuba
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Pobierz najnowsze zmiany z repozytorium infrastruktury
+      git:
+        repo: 'git@github.com:mariuszhoxton/ansible-infrastructure.git'
+        dest: "~/git-infrastructure"
+        version: main
+        force: yes
+        accept_hostkey: yes
+      register: git_update
+
+    - name: Komunikat o aktualizacji
+      fail:
+        msg: "UWAGA: Pobrano nową wersję z GitHub! Zmiany zostały zapisane na dysku. URUCHOM PONOWNIE, aby je wczytać."
+      when: git_update.changed==true  
+
+# --- SEKCJA 2: DEPLOY APLIKACJI (WORDPRESS + LICZNIK + UPTIME KUMA) ---
+- name: Kompleksowe Zarządzanie Serwerem (WP + Licznik + Kuma)
+  hosts: ubuntu_server
+  become: yes
+
+  vars:
+    wp_dir: "/home/Mariusz/wordpress-prod"
+    node_dir: "/home/Mariusz/moja-apka-node"
+    kuma_dir: "/home/Mariusz/uptime-kuma"
+    wp_repo: "git@github.com:mariuszhoxton/nauka-devops-wordpress.git"
+    node_repo: "git@github.com:mariuszhoxton/moja-apka-node.git"
+    kuma_repo: "git@github.com:mariuszhoxton/uptime-kuma.git"
+
+  tasks:
+    - name: 0.1. Stwórz wspólną sieć Dockerową (manualnie)
+      command: docker network create wspolna_siec
+      register: network_result
+      failed_when:
+        - network_result.rc != 0
+        - "'already exists' not in network_result.stderr"
+      changed_when: "network_result.rc == 0"
+
+    - name: 0.2. Zainstaluj ctop (obejście błędu SSL)
+      shell:
+        cmd: |
+          curl -Lo /usr/local/bin/ctop https://github.com/bcicen/ctop/releases/download/v0.7.7/ctop-0.7.7-linux-amd64
+          chmod +x /usr/local/bin/ctop
+      args:
+        creates: /usr/local/bin/ctop
+
+    # --- WORDPRESS ---
+    - name: WP - Pobierz kod
+      git:
+        repo: "{{ wp_repo }}"
+        dest: "{{ wp_dir }}"
+        update: yes
+        force: yes      # <--- DODAJ TO: Zignoruje lokalne zmiany i dociągnie kod z Git
+        accept_hostkey: yes
+      become: no
+
+    - name: WP - Uruchom (Używa pliku docker-compose.yml z GitHub)
+      shell:
+        cmd: "docker compose up -d"
+        chdir: "{{ wp_dir }}"
+
+    # --- LICZNIK ---
+    - name: Node - Pobierz kod
+      git:
+        repo: "{{ node_repo }}"
+        dest: "{{ node_dir }}"
+        update: yes
+        force: yes
+        accept_hostkey: yes
+      become: no
+
+    - name: Node - Uruchom
+      shell:
+        cmd: "docker compose up -d --build"
+        chdir: "{{ node_dir }}"
+
+    # --- UPTIME KUMA ---
+    - name: Kuma - Folder i Konfiguracja
+      file:
+        path: "{{ kuma_dir }}"
+        state: directory
+        owner: Mariusz
+
+    - name: Kuma - Docker Compose
+      copy:
+        dest: "{{ kuma_dir }}/docker-compose.yml"
+        content: |
+          services:
+            uptime-kuma:
+              image: louislam/uptime-kuma:1
+              container_name: uptime-kuma
+              ports:
+                - "3001:3001"
+              networks:
+                - wspolna_siec
+              restart: always
+          networks:
+            wspolna_siec:
+              external: true
+
+    - name: Kuma - Uruchom
+      shell:
+        cmd: "docker compose up -d"
+        chdir: "{{ kuma_dir }}"
