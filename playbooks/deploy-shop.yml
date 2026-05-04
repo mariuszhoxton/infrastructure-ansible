@@ -27,26 +27,6 @@
         force: yes 
       become: no
 
-    - name: "Wymuś stworzenie konfiguracji Nginx (Obejście błędu Git)"
-      copy:
-        dest: "{{ project_path }}/nginx/conf.d/default.conf"
-        content: |
-          server {
-              listen 80;
-              server_name localhost;
-              location / {
-                  proxy_pass http://wordpress:80;
-                  proxy_set_header Host $host;
-                  proxy_set_header X-Real-IP $remote_addr;
-                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto $scheme;
-              }
-          }
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
-        mode: '0644'
-  
-
     # To zadanie jest ważne, bo Nginx potrzebuje folderu conf.d przed startem
     - name: "Upewnij się, że struktura katalogów Nginx istnieje"
       file:
