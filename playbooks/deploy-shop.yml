@@ -5,7 +5,7 @@
   vars_files:
     - ../vars/secrets.yml
   vars:
-    project_name: "mój-sklep"
+    project_name: "moj-sklep"
     project_repo: "git@github.com:mariuszhoxton/shop-project.git"
     project_path: "/home/{{ ansible_user }}/projects/{{ project_name }}"
 
