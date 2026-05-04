@@ -24,6 +24,7 @@
         dest: "{{ project_path }}"
         version: main
         accept_hostkey: yes
+        force: yes 
       become: no
 
     # To zadanie jest ważne, bo Nginx potrzebuje folderu conf.d przed startem
