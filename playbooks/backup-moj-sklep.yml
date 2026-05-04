@@ -15,9 +15,9 @@
     - name: "1. Generowanie zrzutu bazy danych"
       shell: "docker exec shop_database mariadb-dump -u wp_user -p{{ db_password }} wordpress_db > {{ project_path }}/{{ db_filename }}"
 
-    - name: "2. Pakowanie plików WordPressa (wp-content)"
+    - name: "2. Pakowanie plików WordPressa (w tym wp_data) do archiwum tar.gz"
       # Pakujemy folder wp_data, gdzie WordPress trzyma zdjęcia i motywy
-      shell: "tar -czf {{ project_path }}/{{ files_filename }} -C {{ project_path }} wp_data"
+      shell: "docker run --rm -v moj-sklep_wp_data:/data -v {{ project_path }}:/backup alpine tar -czf /backup/{{ files_filename }} -C /data ."
 
     - name: "3. Pobieranie bazy i plików na Almę"
       fetch:
