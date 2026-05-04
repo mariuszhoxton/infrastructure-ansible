@@ -1,0 +1,41 @@
+---
+- name: Kompleksowy Backup Sklepu (Baza + Pliki)
+  hosts: ubuntu_server
+  vars_files:
+    - ../vars/secrets.yml
+  vars:
+    project_path: "/home/{{ ansible_user }}/projects/moj-sklep"
+    backup_path_local: "~/backupy-projektow"
+    # Wspólna data dla obu plików
+    current_time: "{{ lookup('pipe', 'date +%F_%H-%M') }}"
+    db_filename: "moj-sklep-db-{{ current_time }}.sql"
+    files_filename: "moj-sklep-files-{{ current_time }}.tar.gz"
+
+  tasks:
+    - name: "1. Generowanie zrzutu bazy danych"
+      shell: "docker exec shop_database mariadb-dump -u wp_user -p{{ db_password }} wordpress_db > {{ project_path }}/{{ db_filename }}"
+
+    - name: "2. Pakowanie plików WordPressa (wp-content)"
+      # Pakujemy folder wp_data, gdzie WordPress trzyma zdjęcia i motywy
+      shell: "tar -czf {{ project_path }}/{{ files_filename }} -C {{ project_path }} wp_data"
+
+    - name: "3. Pobieranie bazy i plików na Almę"
+      fetch:
+        src: "{{ item }}"
+        dest: "{{ backup_path_local }}/"
+        flat: yes
+      loop:
+        - "{{ project_path }}/{{ db_filename }}"
+        - "{{ project_path }}/{{ files_filename }}"
+
+    - name: "4. Usuwanie plików tymczasowych z Ubuntu"
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ project_path }}/{{ db_filename }}"
+        - "{{ project_path }}/{{ files_filename }}"
+
+    - name: "Podsumowanie"
+      debug:
+        msg: "Backup gotowy! Pliki w {{ backup_path_local }}: {{ db_filename }} oraz {{ files_filename }}"
