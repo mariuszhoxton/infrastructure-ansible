@@ -8,17 +8,15 @@
     backup_src: "{{ lookup('pipe', 'ls -t ~/backupy-projektow/*.sql | head -1') }}"
 
   tasks:
-    - name: 1. Kopiowanie najnowszego backupu na serwer Ubuntu
+    - name: 1. Kopiowanie backupu (zachowujemy oryginalną nazwę)
       copy:
         src: "{{ backup_src }}"
         dest: "{{ project_path }}/{{ backup_src | basename }}"
-        mode: '0644'
 
-    - name: 2. Import bazy danych z użyciem zmiennych środowiskowych kontenera
+    - name: 2. Import bazy (używamy tej samej nazwy co wyżej)
       shell: |
         docker exec -i {{ container_name }} sh -c \
-        'mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE' < {{ project_path }}/restore_tmp.sql
-      register: import_result
+        'mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE' < {{ project_path }}/{{ backup_src | basename }}
 
     - name: 3. Wyświetlenie potwierdzenia importu
       debug:
