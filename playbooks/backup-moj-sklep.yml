@@ -7,26 +7,34 @@
     project_path: "/home/{{ ansible_user }}/projects/moj-sklep"
     backup_path_local: "~/backupy-projektow"
     # Wspólna data dla obu plików
-    current_time: "{{ lookup('pipe', 'date +%F_%H-%M') }}"
-    db_filename: "moj-sklep-db-{{ current_time }}.sql"
-    files_filename: "moj-sklep-files-{{ current_time }}.tar.gz"
+    #current_time: "{{ lookup('pipe', 'date +%F_%H-%M') }}"
+    #db_filename: "moj-sklep-db-{{ current_time }}.sql"
+    # files_filename: "moj-sklep-files-{{ current_time }}.tar.gz"
 
   tasks:
+    - name: "0. Zamrożenie czasu dla backupu"
+      set_fact:
+        current_time: "{{ lookup('pipe', 'date +%F_%H-%M') }}"
+
+    - name: "Definiowanie nazw plików"
+      set_fact:
+        db_filename: "moj-sklep-db-{{ current_time }}.sql"
+        files_filename: "moj-sklep-files-{{ current_time }}.tar.gz"
+
     - name: "1. Generowanie zrzutu bazy danych"
       shell: "docker exec shop_database mariadb-dump -u wp_user -p{{ db_password }} wordpress_db > {{ project_path }}/{{ db_filename }}"
 
     - name: "2. Pakowanie plików WordPressa (w tym wp_data) do archiwum tar.gz"
-      # Pakujemy folder wp_data, gdzie WordPress trzyma zdjęcia i motywy
       shell: "docker run --rm -v moj-sklep_wp_data:/data -v {{ project_path }}:/backup alpine tar -czf /backup/{{ files_filename }} -C /data ."
 
     - name: "3. Pobieranie bazy i plików na Almę"
       fetch:
-        src: "{{ item }}"
+        src: "{{ project_path }}/{{ item }}"
         dest: "{{ backup_path_local }}/"
         flat: yes
       loop:
-        - "{{ project_path }}/{{ db_filename }}"
-        - "{{ project_path }}/{{ files_filename }}"
+        - "{{ db_filename }}"
+        - "{{ files_filename }}"
 
     - name: "4. Usuwanie plików tymczasowych z Ubuntu"
       file:
