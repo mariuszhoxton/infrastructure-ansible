@@ -26,5 +26,5 @@
 
     - name: 4. Czyszczenie pliku tymczasowego na Ubuntu
       file:
-        path: "{{ project_path }}/restore_tmp.sql"
+        path: "{{ project_path }}/{{ backup_src | basename }}"
         state: absent
