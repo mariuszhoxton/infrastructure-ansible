@@ -1,0 +1,31 @@
+---
+- name: Automatyczne Odtwarzanie Bazy Danych
+  hosts: ubuntu
+  vars:
+    project_path: "~/projects/moj-sklep"
+    container_name: "shop_database"
+    # Szukamy najnowszego pliku na Almie w folderze z backupami
+    backup_src: "{{ lookup('pipe', 'ls -t ~/backupy-projektow/*.sql | head -1') }}"
+
+  tasks:
+    - name: 1. Kopiowanie najnowszego backupu na serwer Ubuntu
+      copy:
+        src: "{{ backup_src }}"
+        dest: "{{ project_path }}/restore_tmp.sql"
+        mode: '0644'
+
+    - name: 2. Import bazy danych z użyciem zmiennych środowiskowych kontenera
+      shell: |
+        docker exec -i {{ container_name }} sh -c \
+        'mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE' < {{ project_path }}/restore_tmp.sql
+      register: import_result
+
+    - name: 3. Wyświetlenie potwierdzenia importu
+      debug:
+        msg: "Baza została odtworzona z pliku: {{ backup_src }}"
+      when: import_result.rc == 0
+
+    - name: 4. Czyszczenie pliku tymczasowego na Ubuntu
+      file:
+        path: "{{ project_path }}/restore_tmp.sql"
+        state: absent
