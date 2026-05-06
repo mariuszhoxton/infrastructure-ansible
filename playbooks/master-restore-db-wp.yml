@@ -1,6 +1,6 @@
 ---
-- name: "[S1] Master Restore - Kompleksowe przywracanie sklepu"
-  hosts: ubuntu
+- name: "[S1] Master Restore - Kompleksowe przywracanie"
+  hosts: ubuntu  # Zostawiamy tak, ale musimy upewnić się, że Ansible go widzi
   vars:
     project_path: "~/projects/moj-sklep"
     db_container: "shop_database"
