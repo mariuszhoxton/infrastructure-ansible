@@ -18,13 +18,13 @@
       shell: "docker cp {{ project_path }}/{{ backup_src | basename }} {{ container_name }}:/tmp/"
 
     - name: 3. Rozpakowanie plików wewnątrz kontenera
-      # Używamy -u root, bo tylko root może pisać w /var/www/html
+      # Używamy -u root, aby nadpisać pliki i mieć pełny dostęp do /var/www/html
       shell: |
         docker exec -u root {{ container_name }} sh -c \
         "tar -xzf /tmp/{{ backup_src | basename }} -C /var/www/html/"
 
-    - name: 4. Naprawa uprawnień dla serwera WWW (www-data)
-      # Dzięki temu WordPress "ożyje" i będzie mógł zapisywać pliki
+    - name: 4. Naprawa uprawnień dla serwera WWW
+      # WordPress (www-data) musi być właścicielem, abyś mógł dodawać zdjęcia/wtyczki
       shell: "docker exec -u root {{ container_name }} chown -R www-data:www-data /var/www/html/"
 
     - name: 5. Wyświetlenie potwierdzenia
