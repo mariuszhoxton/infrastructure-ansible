@@ -1,0 +1,58 @@
+---
+- name: "[S1] Master Restore - Kompleksowe przywracanie"
+  hosts: ubuntu
+  vars:
+    project_path: "~/projects/moj-sklep"
+    db_container: "shop_database"
+    wp_container: "shop_frontend"
+    local_backup_dir: "/home/Mariusz/backupy-projektow"
+
+  tasks:
+    - name: "1. [Local] Pobierz listę dostępnych dat z Almalinux"
+      delegate_to: localhost
+      become: no
+      find:
+        paths: "{{ local_backup_dir }}"
+        patterns: "backup_db_*.sql"
+      register: db_backups
+
+    - name: "2. [Display] Dostępne backupy"
+      debug:
+        msg: "{{ item.path | basename | regex_replace('backup_db_', '') | regex_replace('.sql', '') }}"
+      loop: "{{ db_backups.files | sort(attribute='mtime', reverse=true) }}"
+
+    - name: "3. [Input] Podaj datę do przywrócenia"
+      pause:
+        prompt: "Wpisz wybraną datę (np. 20260504-234858)"
+      register: selected_date
+
+    - name: "4. [DB] Kopiowanie pliku SQL na Ubuntu"
+      copy:
+        src: "{{ local_backup_dir }}/backup_db_{{ selected_date.user_input }}.sql"
+        dest: "{{ project_path }}/backup_db_{{ selected_date.user_input }}.sql"
+
+    - name: "5. [DB] Import bazy danych"
+      shell: |
+        docker exec -i {{ db_container }} sh -c \
+        'mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE' < {{ project_path }}/backup_db_{{ selected_date.user_input }}.sql
+
+    - name: "6. [WP] Kopiowanie archiwum tar.gz na Ubuntu"
+      copy:
+        src: "{{ local_backup_dir }}/backup_wp_{{ selected_date.user_input }}.tar.gz"
+        dest: "{{ project_path }}/backup_wp_{{ selected_date.user_input }}.tar.gz"
+
+    - name: "7. [WP] Rozpakowanie w kontenerze"
+      shell: |
+        docker cp {{ project_path }}/backup_wp_{{ selected_date.user_input }}.tar.gz {{ wp_container }}:/tmp/
+        docker exec -u root {{ wp_container }} sh -c \
+        "tar -xzf /tmp/backup_wp_{{ selected_date.user_input }}.tar.gz -C /var/www/html/ && \
+         chown -R www-data:www-data /var/www/html/"
+
+    - name: "8. Sprzątanie"
+      shell: |
+        rm {{ project_path }}/backup_db_{{ selected_date.user_input }}.sql
+        rm {{ project_path }}/backup_wp_{{ selected_date.user_input }}.tar.gz
+        docker exec {{ wp_container }} rm /tmp/backup_wp_{{ selected_date.user_input }}.tar.gz
+
+    - name: "9. Restart"
+      shell: "docker restart {{ wp_container }} shop_proxy"
