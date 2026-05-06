@@ -1,5 +1,5 @@
 ---
-- name: "[S1] Master Restore - Kompleksowe przywracanie"
+- name: "[S1] Master Restore - Kompleksowe przywracanie (DB + Pliki)"
   hosts: ubuntu
   vars:
     project_path: "~/projects/moj-sklep"
@@ -8,6 +8,7 @@
     local_backup_dir: "/home/Mariusz/backupy-projektow"
 
   tasks:
+    # --- KROK 1: POBRANIE DATY Z ALMY ---
     - name: "1. [Local] Pobierz listę dostępnych dat z Almalinux"
       delegate_to: localhost
       become: no
@@ -26,6 +27,7 @@
         prompt: "Wpisz wybraną datę (np. 2026-05-06_01-00)"
       register: selected_date
 
+    # --- KROK 2: RESTORE BAZY (Z Twojego restore-database.yml) ---
     - name: "4. [DB] Kopiowanie pliku SQL na Ubuntu"
       copy:
         src: "{{ local_backup_dir }}/moj-sklep-db-{{ selected_date.user_input | trim }}.sql"
@@ -36,6 +38,7 @@
         docker exec -i {{ db_container }} sh -c \
         'mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE' < {{ project_path }}/moj-sklep-db-{{ selected_date.user_input | trim }}.sql
 
+    # --- KROK 3: RESTORE PLIKÓW (Z Twojego restore-wp-files.yml) ---
     - name: "6. [WP] Kopiowanie archiwum tar.gz na Ubuntu"
       copy:
         src: "{{ local_backup_dir }}/moj-sklep-files-{{ selected_date.user_input | trim }}.tar.gz"
@@ -48,11 +51,14 @@
         "tar -xzf /tmp/moj-sklep-files-{{ selected_date.user_input | trim }}.tar.gz -C /var/www/html/ && \
          chown -R www-data:www-data /var/www/html/"
 
-    - name: "8. Sprzątanie"
-      shell: |
-        rm {{ project_path }}/moj-sklep-db-{{ selected_date.user_input | trim }}.sql
-        rm {{ project_path }}/moj-sklep-files-{{ selected_date.user_input | trim }}.tar.gz
-        docker exec {{ wp_container }} rm /tmp/moj-sklep-files-{{ selected_date.user_input | trim }}.tar.gz
+    # --- KROK 4: SPRZĄTANIE I RESTART ---
+    - name: "8. Sprzątanie plików tymczasowych na Ubuntu"
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ project_path }}/moj-sklep-db-{{ selected_date.user_input | trim }}.sql"
+        - "{{ project_path }}/moj-sklep-files-{{ selected_date.user_input | trim }}.tar.gz"
 
-    - name: "9. Restart"
+    - name: "9. Restart kontenerów"
       shell: "docker restart {{ wp_container }} shop_proxy"
