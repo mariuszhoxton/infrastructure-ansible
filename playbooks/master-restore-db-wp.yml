@@ -19,8 +19,10 @@
 
     - name: "2. [Display] Dostępne backupy"
       debug:
-        msg: "{{ item.path | basename | regex_replace('moj-sklep-db-', '') | regex_replace('.sql', '') }}"
+        msg: "DATA: {{ item.path | basename | regex_replace('moj-sklep-db-', '') | regex_replace('.sql', '') }}"
       loop: "{{ db_backups.files | sort(attribute='mtime', reverse=true) }}"
+      loop_control:
+        label: "{{ item.path | basename }}" # TO USUNIE SIECZKĘ
 
     - name: "3. [Input] Podaj datę do przywrócenia"
       pause:
