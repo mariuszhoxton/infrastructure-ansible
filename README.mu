@@ -1,0 +1,1 @@
+Projekt uruchamiany na maszynach wirtualnych Ubuntu/Almalinux. Adresacja w hosts.ini odpowiada mojej konfiguracji VirtualBox
