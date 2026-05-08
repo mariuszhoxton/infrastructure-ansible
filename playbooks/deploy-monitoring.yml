@@ -5,7 +5,7 @@
     # Gdzie na Ubuntu ma wylądować projekt
     project_path: "/home/{{ ansible_user }}/projects/monitoring"
     # Adres Twojego nowego repozytorium
-    repo_url: "https://github.com"
+    project_repo: "git@github.com:mariuszhoxton/monitoring-project.git" 
 
   tasks:
     - name: "1. Tworzenie folderu projektu na Ubuntu"
@@ -15,7 +15,7 @@
 
     - name: "2. Pobieranie kodu monitoringu z GitHuba na Ubuntu"
       git:
-        repo: "{{ repo_url }}"
+        repo: "{{ project_repo }}"
         dest: "{{ project_path }}"
         version: main
         force: yes
