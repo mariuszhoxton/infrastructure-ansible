@@ -1,10 +1,10 @@
 ---
-- name: "Deploy Monitoring (Netdata)"
+- name: "Deploy Monitoring (Netdata) - bezpośrednio na Ubuntu Server"
   hosts: ubuntu_server
   vars:
     # Gdzie na Ubuntu ma wylądować projekt
     project_path: "/home/{{ ansible_user }}/projects/monitoring"
-    # Adres Twojego nowego repozytorium
+    # Adres repozytorium
     project_repo: "git@github.com:mariuszhoxton/monitoring-project.git" 
 
   tasks:
