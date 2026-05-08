@@ -38,7 +38,7 @@
     - name: "5. [DB] Import bazy danych"
       shell: |
         docker exec -i {{ db_container }} sh -c \
-        'mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE' < {{ project_path }}/moj-sklep-db-{{ selected_date.user_input | trim }}.sql
+        'mysql -u root -p{{ db_root_password }}' < {{ project_path }}/moj-sklep-db-{{ selected_date.user_input | trim }}.sql
 
     # --- KROK 3: RESTORE PLIKÓW (Z Twojego restore-wp-files.yml) ---
     - name: "6. [WP] Kopiowanie archiwum tar.gz na Ubuntu"
