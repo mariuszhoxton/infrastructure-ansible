@@ -22,7 +22,7 @@
         files_filename: "moj-sklep-files-{{ current_time }}.tar.gz"
 
     - name: "1. Generowanie zrzutu bazy danych"
-      shell: "docker exec shop_database mariadb-dump -u wp_user -p{{ db_password }} wordpress_db > {{ project_path }}/{{ db_filename }}"
+      shell: "docker exec shop_database mariadb-dump -u root -p{{ db_password }} --all-databases > {{ project_path }}/{{ db_filename }}"
 
     - name: "2. Pakowanie plików WordPressa (w tym wp_data) do archiwum tar.gz"
       shell: "docker run --rm -v moj-sklep_wp_data:/data -v {{ project_path }}:/backup alpine tar -czf /backup/{{ files_filename }} -C /data ."
