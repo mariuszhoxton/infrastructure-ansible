@@ -1,6 +1,8 @@
 ---
 - name: "[S1] Master Restore - Kompleksowe przywracanie (DB + Pliki)"
-  hosts: ubuntu
+  hosts: ubuntu_server  # <--- Zmień na ubuntu_server (zgodnie z hosts.ini)
+  vars_files:
+    - ../vars/secrets.yml # <--- DODAJ TĘ LINIĘ
   vars:
     project_path: "~/projects/moj-sklep"
     db_container: "shop_database"
