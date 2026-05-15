@@ -2,8 +2,8 @@
 - name: "Deploy Monitoring (Netdata) - bezpośrednio na Ubuntu Server"
   hosts: ubuntu_server
   vars:
-    # Gdzie na Ubuntu ma wylądować projekt
-    project_path: "/home/{{ ansible_user }}/projects/monitoring"
+    # Gdzie na Ubuntu ma wylądować projekt. Dynamiczna ścieżka odporna na wielkość liter w nazwie użytkownika
+    project_path: "/home/{{ ansible_env.HOME }}/projects/monitoring"
     # Adres repozytorium
     project_repo: "git@github.com:mariuszhoxton/monitoring-project.git" 
 
@@ -12,6 +12,7 @@
       file:
         path: "{{ project_path }}"
         state: directory
+        mode: '0755'
 
     - name: "2. Pobieranie kodu monitoringu z GitHuba na Ubuntu"
       git:
