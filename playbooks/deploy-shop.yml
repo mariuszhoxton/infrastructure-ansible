@@ -1,33 +1,52 @@
 ---
-- name: "Deploy Monitoring (Netdata) - bezpośrednio na Ubuntu Server"
+- name: Deploy aplikacji z GitHub bezpośrednio na Ubuntu (z Nginx)
   hosts: ubuntu_server
-  become: yes         # Przywracamy - dokładnie tak jak w playbooku sklepu
+  become: yes
   vars_files:
-    - ../vars/secrets.yml  # Wczytujemy Twoje zmienne bezpieczne
-
+    - ../vars/secrets.yml
   vars:
-    project_name: "monitoring"
-    project_repo: "git@github.com:mariuszhoxton/monitoring-project.git"
+    project_name: "moj-sklep"
+    project_repo: "git@github.com:mariuszhoxton/shop-project.git"
     project_path: "/home/{{ ansible_user }}/projects/{{ project_name }}"
 
   tasks:
-    - name: "1. Tworzenie folderu projektu na Ubuntu"
-      ansible.builtin.file:
-        path: "{{ project_path }}"
+    - name: "Upewnij się, że katalog projektów istnieje"
+      file:
+        path: "/home/{{ ansible_user }}/projects"
         state: directory
-        mode: '0755'
-        owner: "{{ ansible_user }}"  # Zapewniamy, że Mariusz jest właścicielem katalogu
+        owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
+        mode: '0755' 
 
-    - name: "2. Pobieranie kodu monitoringu z GitHuba na Ubuntu"
-      ansible.builtin.git:
+    - name: "Pobierz/Aktualizuj kod projektu z GitHub"
+      git:
         repo: "{{ project_repo }}"
         dest: "{{ project_path }}"
         version: main
-        force: yes
-      become: no  # KLUCZOWE: Pobieranie z Gita wyłączamy z become, aby użyć klucza SSH Mariusza, a nie roota!
+        accept_hostkey: yes
+        force: yes 
+      become: no
 
-    - name: "3. Uruchomienie Netdata przez Docker Compose"
-      ansible.builtin.shell:
-        cmd: "docker compose up -d"
-        chdir: "{{ project_path }}"
+    # To zadanie jest ważne, bo Nginx potrzebuje folderu conf.d przed startem
+    - name: "Upewnij się, że struktura katalogów Nginx istnieje"
+      file:
+        path: "{{ project_path }}/nginx/conf.d"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: "Stworz plik .env z haslami z Vault"
+      template:
+        src: "../templates/.env.j2"
+        dest: "{{ project_path }}/.env"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+
+    - name: "Uruchom projekt przez Docker Compose (NGINX + WP + DB)"
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_path }}"
+        state: present
+        # Dodajemy pull, aby Docker zawsze sprawdził czy nie ma nowszych obrazów
+        pull: always 
