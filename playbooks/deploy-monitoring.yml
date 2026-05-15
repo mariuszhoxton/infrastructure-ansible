@@ -22,6 +22,7 @@
         force: yes
 
     - name: "3. Uruchomienie Netdata przez Docker Compose"
-      community.docker.docker_compose_v2:
-        project_src: "{{ project_path }}"
-        state: present
+      ansible.builtin.shell: |
+        cd {{ project_path }} && docker-compose up -d
+      args:
+        chdir: "{{ project_path }}"
