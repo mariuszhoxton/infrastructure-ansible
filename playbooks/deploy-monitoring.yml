@@ -25,6 +25,7 @@
         dest: "{{ project_path }}"
         version: main
         force: yes
+        accept_hostkey: yes  # DOPISANE - automatycznie akceptuje klucz hosta GitHub
       become: no  # KLUCZOWE: Pobieranie z Gita wyłączamy z become, aby użyć klucza SSH Mariusza, a nie roota!
 
     - name: "3. Uruchomienie Netdata przez Docker Compose"
