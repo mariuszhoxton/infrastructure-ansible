@@ -1,12 +1,12 @@
 ---
 - name: "Deploy Monitoring (Netdata) - bezpośrednio na Ubuntu Server"
   hosts: ubuntu_server
-  gather_facts: no  # Wyłączamy zbieranie faktów jako root (zapobiega Permission Denied)
+  gather_facts: yes  # Włączamy zbieranie faktów jako root (zapobiega Permission Denied)
   become: no        # Łączymy się dokładnie tak samo jak Twoje ręczne 'ssh ubuntu'
 
   vars:
     # Wpisujemy ścieżkę na sztywno, ponieważ wyłączyliśmy automatyczne zbieranie zmiennych ansible_env
-    project_path: "/home/Mariusz/projects/monitoring"
+    project_path: "/home/{{ ansible_user }}/projects/monitoring"
     project_repo: "git@github.com:mariuszhoxton/monitoring-project.git" 
 
   tasks:
