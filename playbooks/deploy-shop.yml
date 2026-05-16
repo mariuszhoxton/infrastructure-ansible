@@ -44,9 +44,15 @@
         group: "{{ ansible_user }}"
         mode: '0600'
 
+    - name: "Bezpieczne zatrzymanie i wyczyszczenie starych zasobów sieciowych"
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_path }}"
+        state: absent # Spowoduje wykonanie 'docker compose down' i usunięcie starych kart sieciowych
+      failed_when: false # Jeśli to pierwszy start i nic nie istnieje, zignoruj i idź dalej
+
     - name: "Uruchom projekt przez Docker Compose (NGINX + WP + DB)"
       community.docker.docker_compose_v2:
         project_src: "{{ project_path }}"
         state: present
         # Dodajemy pull, aby Docker zawsze sprawdził czy nie ma nowszych obrazów
-        pull: always 
+        pull: missing # Zmieniamy z 'always' na 'missing' – pobierze obrazy tylko jeśli ich nie ma. Zapobiega to długim przestojom na ściąganie z Docker Hub. 
