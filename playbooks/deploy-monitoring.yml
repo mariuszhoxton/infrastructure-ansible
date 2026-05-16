@@ -1,7 +1,7 @@
 ---
 - name: "Deploy Monitoring (Netdata) - bezpośrednio na Ubuntu Server"
   hosts: ubuntu_server
-  become: yes         # Globalny root dla zadań systemowych i wolumenów
+  become: yes         # Globalny root do operacji systemowych i sieciowych
   vars_files:
     - ../vars/secrets.yml
 
@@ -12,7 +12,12 @@
     global_net_name: "global_monitoring_net"
 
   tasks:
-    - name: "1. Tworzenie folderu projektu na Ubuntu"
+    - name: "1. Upewnij się, że globalna sieć monitoringu istnieje w systemie"
+      community.docker.docker_network:
+        name: "{{ global_net_name }}"
+        state: present # Jeśli sieć istnieje, Ansible nic nie zrobi. Jeśli jej nie ma (pierwszy start), sam ją bezpiecznie utworzy.
+
+    - name: "2. Tworzenie folderu projektu na Ubuntu"
       ansible.builtin.file:
         path: "{{ project_path }}"
         state: directory
@@ -20,7 +25,7 @@
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
 
-    - name: "2. Pobieranie kodu monitoringu z GitHuba"
+    - name: "3. Pobieranie kodu monitoringu z GitHuba"
       ansible.builtin.git:
         repo: "{{ project_repo }}"
         dest: "{{ project_path }}"
@@ -29,14 +34,15 @@
         accept_hostkey: yes
       become: no  # Pobieranie jako Mariusz dla kluczy SSH
 
-    - name: "3. Bezpieczne zatrzymanie i wyczyszczenie starych zasobów Netdata"
+    - name: "4. Bezpieczne zatrzymanie i wyczyszczenie starych zasobów Netdata"
       community.docker.docker_compose_v2:
         project_src: "{{ project_path }}"
         state: absent
-      failed_when: false # Ignoruje błąd, jeśli to pierwszy start systemu
+      failed_when: false # Ignoruje błąd przy pierwszym starcie, gdy nie ma jeszcze kontenerów
 
-    - name: "4. Uruchomienie Netdata przez Docker Compose"
+    - name: "5. Uruchomienie Netdata przez Docker Compose"
       community.docker.docker_compose_v2:
         project_src: "{{ project_path }}"
         state: present
         pull: missing # Pobiera obraz tylko wtedy, gdy go nie ma na dysku
+      register: compose_result
