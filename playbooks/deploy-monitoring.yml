@@ -1,7 +1,7 @@
 ---
 - name: "Deploy Monitoring (Netdata) - bezpośrednio na Ubuntu Server"
   hosts: ubuntu_server
-  become: yes         # Przywracamy - dokładnie tak jak w playbooku sklepu
+  become: yes         # Globalny root dla zadań systemowych
   vars_files:
     - ../vars/secrets.yml  # Wczytujemy Twoje zmienne bezpieczne
 
@@ -9,8 +9,16 @@
     project_name: "monitoring"
     project_repo: "git@github.com:mariuszhoxton/monitoring-project.git"
     project_path: "/home/{{ ansible_user }}/projects/{{ project_name }}"
+    global_net_name: "global_monitoring_net"
 
   tasks:
+    - name: "0. Tworzenie globalnej sieci monitoringu w Dockerze"
+      ansible.builtin.shell:
+        cmd: "docker network create {{ global_net_name }}"
+      register: network_creation
+      failed_when: false
+      changed_when: "'already exists' not in network_creation.stderr and network_creation.rc == 0"
+
     - name: "1. Tworzenie folderu projektu na Ubuntu"
       ansible.builtin.file:
         path: "{{ project_path }}"
@@ -25,11 +33,13 @@
         dest: "{{ project_path }}"
         version: main
         force: yes
-        accept_hostkey: yes  # DOPISANE - automatycznie akceptuje klucz hosta GitHub
-      become: no  # KLUCZOWE: Pobieranie z Gita wyłączamy z become, aby użyć klucza SSH Mariusza, a nie roota!
+        accept_hostkey: yes  # Automatycznie akceptuje klucz hosta GitHub
+      become: no  # Pobieranie z Gita jako użytkownik Mariusz, a ne root
 
     - name: "3. Uruchomienie Netdata przez Docker Compose"
       ansible.builtin.shell:
         cmd: "docker compose up -d"
         chdir: "{{ project_path }}"
+      become: no  # Mariusz jest w grupie docker, nie potrzebuje sudo
+
 
